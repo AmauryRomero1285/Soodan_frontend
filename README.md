@@ -23,25 +23,64 @@ Soodan es una plataforma integral de salud digital diseñada para facilitar la i
 
 ```text
 lib/
-├── core/               # Configuraciones globales, temas, constantes y helpers.
-├── features/           # Módulos funcionales de la aplicación:
-│   ├── auth/           # Gestión de autenticación y sesiones.
-│   ├── home/           # Pantalla principal y dashboards.
-│   ├── appointments/   # Gestión de citas médicas.
-│   ├── profile/        # Información y ajustes del usuario.
-│   ├── medical_record/ # Historial y expedientes médicos.
-│   ├── chat/           # Mensajería interna.
-│   ├── videocall/      # Funcionalidad de telemedicina.
-│   └── ...
+├── main.dart
 │
-├── shared/             # Código compartido entre múltiples features:
-│   ├── widgets/        # Widgets atómicos y reutilizables.
-│   ├── components/     # Piezas de UI más complejas (ej. modales, layouts).
-│   └── extensions/     # Extensiones de Dart/Flutter.
-│   
-├── config/             # Rutas, inyección de dependencias y variables de entorno.
-├── generated/          # Código autogenerado (Freezed, JSON Serializable, etc.).
-└── main.dart           # Punto de entrada de la aplicación.
+├── config/                
+│   ├── app_config.dart
+│   ├── routes/
+│   │   ├── app_router.dart           
+│   │   └── app_routes.dart
+│   ├── di/                   # Inyección de dependencias
+│       └── injection_container.dart
+│
+├── core/                     # Cosas que NO pertenecen a ninguna feature específica
+│   ├── constants/
+│   ├── errors/
+│   ├── network/              # dio, interceptors, connectivity
+│   ├── theme/
+│   │   ├── app_colors.dart
+│   │   ├── app_text_styles.dart
+│   │   └── app_theme.dart
+│   ├── usecases/             # usecases
+│   └── utils/
+│       ├── extensions/
+│       └── helpers.dart
+│
+├── features/                 
+│   ├── auth/
+│   │   ├── data/
+│   │   │   ├── datasources/      
+│   │   │   ├── models/           
+│   │   │   └── repositories/
+│   │   ├── domain/
+│   │   │   ├── entities/         # modelos de negocio
+│   │   │   ├── repositories/     # interfaz abstracta
+│   │   │   └── usecases/
+│   │   └──  presentation/
+│   │       ├── blocs /
+│   │       ├── pages/            
+│   │       ├── widgets/
+│   │       └── login/ forgot_password/ register/ etc.
+│   │   
+│   │
+│   ├── home/
+│   │   ├── data/
+│   │   ├── domain/
+│   │   └── presentation/
+│   │
+│   ├── appointments/
+│   │   └── (igual estructura)
+│   │
+│   ├── profile/
+│   ├── medical_record/
+│   ├── chat/
+│   └── videocall/
+│
+└── shared/
+    ├── widgets/               # genéricos (button, card, loading, etc.)
+    ├── components/            # complejos (date_picker_modal, custom_app_bar, etc.)
+    ├── models/                # modelos compartidos (UserRole, Gender, Country…)
+    └── services/              # servicios globales (analytics, crashlytics, permissions…)
 ```
 
 
