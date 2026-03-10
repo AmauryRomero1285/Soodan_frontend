@@ -32,11 +32,13 @@ lib/
 │   ├── medical_record/ # Historial y expedientes médicos.
 │   ├── chat/           # Mensajería interna.
 │   ├── videocall/      # Funcionalidad de telemedicina.
-│   └── ...             # Otras funcionalidades específicas.
+│   └── ...
+│
 ├── shared/             # Código compartido entre múltiples features:
 │   ├── widgets/        # Widgets atómicos y reutilizables.
 │   ├── components/     # Piezas de UI más complejas (ej. modales, layouts).
 │   └── extensions/     # Extensiones de Dart/Flutter.
+│   
 ├── config/             # Rutas, inyección de dependencias y variables de entorno.
 ├── generated/          # Código autogenerado (Freezed, JSON Serializable, etc.).
 └── main.dart           # Punto de entrada de la aplicación.
