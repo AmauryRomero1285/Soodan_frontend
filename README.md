@@ -1,39 +1,45 @@
-# Soodan – Frontend Móvil (Flutter)
+# Soodan – Mobile Frontend (Flutter)
 
-Aplicación móvil para pacientes y profesionales de la salud desarrollada con **Flutter**.
+![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0175C2?logo=dart&logoColor=white)
+![Version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 
-Soodan es una plataforma integral de salud digital diseñada para facilitar la interacción entre pacientes y médicos, mejorar el seguimiento de tratamientos y promover el autocuidado de manera segura y accesible.
+Soodan is a comprehensive digital health platform designed to facilitate interaction between patients and medics, improve treatment tracking, and promote self-care in a secure and accessible way.
 
-## ✨ Características principales
+## Key Features
 
-- Autenticación segura (pacientes, médicos y administradores)
-- Perfil de usuario completo (paciente y profesional de salud)
-- Agenda y citas médicas (programación, recordatorios, cancelaciones)
-- Historial clínico accesible y controlado
-- Registro de signos vitales y síntomas diarios
-- Recordatorios de medicamentos y tomas (con notificaciones push)
-- Videoconsultas (integración con WebRTC / Agora / similar)
-- Chat en tiempo real con el médico asignado
-- Resultados de laboratorio e imágenes diagnósticas
-- Modo oscuro / claro automático
-- Soporte multilenguaje (español + inglés inicial)
-- Diseño responsivo y accesible (cumpliendo estándares básicos de accesibilidad)
+- **Secure Authentication:** Multi-role support (Patients, Doctors, and Admins).
+- **Medical Agenda:** Scheduling, reminders, and cancellations with Push Notifications.
+- **Telemedicine:** Video consultations via WebRTC/Agora and real-time chat.
+- **Health Tracking:** Daily monitoring of vital signs, symptoms, and lab results.
+- **UX/UI:** Automatic Dark/Light mode and multi-language support (ES/EN).
+- **Accessibility:** Responsive design following basic accessibility standards.
 
-## 📂 Estructura de carpetas (Temporal)
+## Tech Stack
+
+- **State Management:** [Bloc/Cubit](https://pub.dev) (Predictable state management).
+- **Dependency Injection:** [GetIt](https://pub.dev).
+- **Navigation:** [GoRouter](https://pub.dev) / [AutoRouter].
+- **Network:** [Dio](https://pub.dev) with interceptors for JWT handling.
+- **Local Storage:** [Hive](https://pub.dev) or [Isar] for caching.
+- **Architecture:** Clean Architecture (Data, Domain, Presentation).
+
+## Folder Structure (Temporary)
 
 ```text
 lib/
 ├── main.dart
 │
-├── config/                
+├── config/
 │   ├── app_config.dart
 │   ├── routes/
-│   │   ├── app_router.dart           
+│   │   ├── app_router.dart
 │   │   └── app_routes.dart
-│   ├── di/                   # Inyección de dependencias
+│   ├── di/                   # Dependency Injection
 │       └── injection_container.dart
 │
-├── core/                     # Cosas que NO pertenecen a ninguna feature específica
+├── core/                     # Items that do NOT belong to any specific feature
 │   ├── constants/
 │   ├── errors/
 │   ├── network/              # dio, interceptors, connectivity
@@ -46,22 +52,22 @@ lib/
 │       ├── extensions/
 │       └── helpers.dart
 │
-├── features/                 
+├── features/
 │   ├── auth/
 │   │   ├── data/
-│   │   │   ├── datasources/      
-│   │   │   ├── models/           
+│   │   │   ├── datasources/
+│   │   │   ├── models/
 │   │   │   └── repositories/
 │   │   ├── domain/
-│   │   │   ├── entities/         # modelos de negocio
-│   │   │   ├── repositories/     # interfaz abstracta
+│   │   │   ├── entities/         # business models
+│   │   │   ├── repositories/     # abstract interface
 │   │   │   └── usecases/
 │   │   └──  presentation/
 │   │       ├── blocs /
-│   │       ├── pages/            
+│   │       ├── pages/
 │   │       ├── widgets/
 │   │       └── login/ forgot_password/ register/ etc.
-│   │   
+│   │
 │   │
 │   ├── home/
 │   │   ├── data/
@@ -69,7 +75,7 @@ lib/
 │   │   └── presentation/
 │   │
 │   ├── appointments/
-│   │   └── (igual estructura)
+│   │   └── (same structure)
 │   │
 │   ├── profile/
 │   ├── medical_record/
@@ -77,10 +83,9 @@ lib/
 │   └── videocall/
 │
 └── shared/
-    ├── widgets/               # genéricos (button, card, loading, etc.)
-    ├── components/            # complejos (date_picker_modal, custom_app_bar, etc.)
-    ├── models/                # modelos compartidos (UserRole, Gender, Country…)
-    └── services/              # servicios globales (analytics, crashlytics, permissions…)
+    ├── widgets/               # generics (button, card, loading, etc.)
+    ├── components/            # complex (date_picker_modal, custom_app_bar, etc.)
+    ├── models/                # shared models (UserRole, Gender, Country…)
+    └── services/              # global services (analytics, crashlytics, permissions…)
+
 ```
-
-
