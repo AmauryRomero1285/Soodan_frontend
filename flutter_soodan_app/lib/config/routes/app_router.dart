@@ -1,17 +1,20 @@
-import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_soodan_app/config/routes/app_routes.dart';
 
 class AppRouter {
-  static Route<dynamic> generateRoute(RouteSettings settings) {
-    switch (settings.name) {
-      case '/':
-        return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text("Home"))));
-      // Aquí añadirás más casos para tus "features"
-      default:
-        return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Center(child: Text('No existe ruta para ${settings.name}')),
-          ),
-        );
-    }
-  }
+  static final GoRouter router = GoRouter(
+    initialLocation: AppRoutes.splash,
+    routes: [
+      GoRoute(
+        path: AppRoutes.splash,
+        name: AppRoutes.splash,
+        // builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        name: AppRoutes.login,
+        // builder: (context, state) => const LoginPage(),
+      ),
+    ],
+  );
 }
