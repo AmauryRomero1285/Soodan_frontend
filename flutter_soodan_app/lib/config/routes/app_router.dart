@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_soodan_app/config/routes/app_routes.dart';
-import 'package:flutter_soodan_app/features/auth/presentation/pages/splash_page.dart'; // Ajusta la ruta según tu carpetas
+import 'package:flutter_soodan_app/features/pages.examples/dashboard.dart';
 
 
 class AppRouter {
@@ -10,14 +10,14 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.splash,
         name: AppRoutes.splash,
-        builder: (context, state) => const SplashPage(),
+        builder: (context, state) => const DashboardScreen(),
       ),
-      /* 
+       
       GoRoute(
-        path: AppRoutes.login,
-        name: AppRoutes.login,
+        path: AppRoutes.home,
+        name: AppRoutes.home,
+        builder: (context,state)=> const DashboardScreen(),
       ), 
-      */
     ],
   );
 }
