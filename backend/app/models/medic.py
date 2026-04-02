@@ -1,6 +1,7 @@
-from sqlalchemy.orm import relationship
+# app/models/medic.py
 from sqlalchemy import Column, Integer, String, Numeric, Text, ForeignKey
-from .base import Base
+from sqlalchemy.orm import relationship
+from app.models.base import Base
 
 class Medic(Base):
     __tablename__ = "medics"
@@ -12,7 +13,16 @@ class Medic(Base):
     bio = Column(Text)
     consultation_price = Column(Numeric(10,2), nullable=False)
     availability_price = Column(Numeric(10,2))
-    hospital_id = Column(Integer, ForeignKey("hospital.id", ondelete="SET NULL"), nullable=True)
 
+    # Clave foránea hacia Hospital
+    hospital_id = Column(Integer, ForeignKey("hospitals.id", ondelete="SET NULL"), nullable=True)
+    
+    # Clave foránea hacia Profile
     profiles_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, unique=True)
-    profile = relationship("Profile", back_populates="medic")
+
+    # Relaciones
+    profile = relationship("Profile", back_populates="medic", uselist=False)
+    hospital = relationship("Hospital", back_populates="medics", lazy="selectin")
+
+    def __repr__(self):
+        return f"<Medic {self.license_number} - {self.specialty}>"

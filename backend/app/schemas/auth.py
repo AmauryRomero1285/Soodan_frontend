@@ -60,6 +60,6 @@ class ResetPassword(BaseModel):
 
 # ====================== VERIFICACIÓN ======================
 
-class VerifyCode(BaseModel):
+class VerifyCodeRequest(BaseModel):
     email: EmailStr
     code: str = Field(..., min_length=6, max_length=6)

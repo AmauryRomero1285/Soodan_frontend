@@ -1,27 +1,40 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+# app/api/v1/auth.py
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from datetime import timedelta
+import random
+
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.dependencies import get_db
 from app.models.profile import Profile
 from app.models.medic import Medic
 from app.models.patient import Patient
 from app.models.session import UserSession
+from app.email.service import send_email_background
+
 from app.schemas.auth import (
-    RegisterMedic, RegisterPatient, LoginRequest,
-    ForgotPassword, ResetPassword
+    RegisterMedic,
+    RegisterPatient,
+    ForgotPassword,
+    ResetPassword,
+    VerifyCodeRequest
 )
-from datetime import timedelta
-import random
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Código de verificación simple (puedes guardar en Redis o tabla temporal en prod)
-verification_codes = {}   # {email: code} → reemplazar por Redis en producción
+# Almacenamiento temporal (→ Redis en producción)
+verification_codes = {}  # {email: code}
 
-@router.post("/register/medic", status_code=201)
-def register_medic(data: RegisterMedic, db: Session = Depends(get_db)):
+
+@router.post("/register/medic", status_code=status.HTTP_201_CREATED)
+def register_medic(
+    data: RegisterMedic,
+    background_tasks: BackgroundTasks,   # ← Corregido: plural
+    db: Session = Depends(get_db)
+):
     if db.query(Profile).filter(Profile.email == data.email).first():
-        raise HTTPException(400, "El email ya está registrado")
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
 
     new_profile = Profile(
         email=data.email,
@@ -35,61 +48,155 @@ def register_medic(data: RegisterMedic, db: Session = Depends(get_db)):
     db.add(new_profile)
     db.flush()
 
+    hospital_id = data.hospital_id if hasattr(data, 'hospital_id') and data.hospital_id != 0 else None
+
     new_medic = Medic(
         profiles_id=new_profile.id,
         specialty=data.specialty,
         license_number=data.license_number,
         consultation_price=data.consultation_price,
-        # ...
+        availability_price=data.availability_price,
+        bio=data.bio,
+        hospital_id=hospital_id,
     )
     db.add(new_medic)
 
-    # Generar código de verificación
     code = str(random.randint(100000, 999999))
     verification_codes[data.email] = code
 
-    # TODO: Enviar email con el código (usa smtplib o aiosmtplib + Jinja)
+    send_email_background(
+        background_tasks=background_tasks,
+        to_email=data.email,
+        subject="Verifica tu cuenta en Soodan",
+        template_name="verification.html",
+        context={"code": code, "name": data.name}
+    )
 
     db.commit()
-    return {"message": "Médico registrado. Verifica tu email con el código enviado."}
+    return {"message": "Médico registrado correctamente. Revisa tu correo para verificar la cuenta."}
 
-@router.post("/register/patient", status_code=201)
-def register_patient(data: RegisterPatient, db: Session = Depends(get_db)):
-    # Similar al anterior, pero role="patient" y crea Patient
-    ...
+
+@router.post("/register/patient", status_code=status.HTTP_201_CREATED)
+def register_patient(
+    data: RegisterPatient,
+    background_tasks: BackgroundTasks,   # ← Corregido
+    db: Session = Depends(get_db)
+):
+    # ... (mismo patrón que register_medic)
+    # Copia el código de arriba y cambia solo lo necesario (role="patient" y Patient)
+    if db.query(Profile).filter(Profile.email == data.email).first():
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+
+    new_profile = Profile(
+        email=data.email,
+        name=data.name,
+        lastname=data.lastname,
+        phone_number=data.phone_number,
+        role="patient",
+        password=get_password_hash(data.password),
+        is_verified=0
+    )
+    db.add(new_profile)
+    db.flush()
+
+    new_patient = Patient(
+        profiles_id=new_profile.id,
+        birth_date=data.birth_date,
+        blood_type=data.blood_type,
+        allergies=data.allergies,
+        height=data.height,
+        weight=data.weight,
+    )
+    db.add(new_patient)
+
+    code = str(random.randint(100000, 999999))
+    verification_codes[data.email] = code
+
+    send_email_background(
+        background_tasks=background_tasks,
+        to_email=data.email,
+        subject="Verifica tu cuenta en Soodan",
+        template_name="verification.html",
+        context={"code": code, "name": data.name}
+    )
+
+    db.commit()
+    return {"message": "Paciente registrado correctamente. Revisa tu correo para verificar la cuenta."}
+
+
+# ==================== NUEVO: Reenvío de código ====================
+@router.post("/resend-verification")
+def resend_verification(email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    user = db.query(Profile).filter(Profile.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.is_verified:
+        raise HTTPException(status_code=400, detail="La cuenta ya está verificada")
+
+    code = str(random.randint(100000, 999999))
+    verification_codes[email] = code
+
+    send_email_background(
+        background_tasks=background_tasks,
+        to_email=email,
+        subject="Reenvío de código de verificación - Soodan",
+        template_name="verification.html",
+        context={"code": code, "name": user.name}
+    )
+
+    return {"message": "Código de verificación reenviado a tu correo"}
+
 
 @router.post("/verify-code")
-def verify_code(email: str, code: str, db: Session = Depends(get_db)):
-    if verification_codes.get(email) != code:
-        raise HTTPException(400, "Código inválido")
-    
-    user = db.query(Profile).filter(Profile.email == email).first()
-    if user:
-        user.is_verified = 1
-        db.commit()
-        del verification_codes[email]
-        return {"message": "Cuenta verificada correctamente"}
-    raise HTTPException(404, "Usuario no encontrado")
+def verify_code(request: VerifyCodeRequest, db: Session = Depends(get_db)):
+    stored_code = verification_codes.get(request.email)
+    if not stored_code or stored_code != request.code:
+        raise HTTPException(status_code=400, detail="Código inválido o expirado")
+
+    user = db.query(Profile).filter(Profile.email == request.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    user.is_verified = 1
+    db.commit()
+    verification_codes.pop(request.email, None)
+
+    return {"message": "Cuenta verificada correctamente"}
+
+
+# El resto de endpoints (login, forgot-password, reset-password) se mantienen igual
+# (solo asegúrate de usar background_tasks correctamente en forgot-password)
 
 @router.post("/login")
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(Profile).filter(Profile.email == data.email).first()
-    
-    if not user or not verify_password(data.password, user.password or ""):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Credenciales inválidas")
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    db: Session = Depends(get_db)
+):
+    # form_data.username = email
+    user = db.query(Profile).filter(Profile.email == form_data.username).first()
+
+    if not user or not user.password or not verify_password(form_data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales inválidas",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     if not user.is_verified:
-        raise HTTPException(403, "Debes verificar tu cuenta primero")
+        raise HTTPException(
+            status_code=403,
+            detail="Debes verificar tu cuenta primero"
+        )
 
-    # Diferente expiración según rol
-    expires = timedelta(days=30) if user.role == "patient" else timedelta(days=1)
+    # Expiración según rol
+    expires = timedelta(days=30) if user.role == "patient" else timedelta(hours=24)
 
     token = create_access_token(
-        subject={"sub": user.id, "role": user.role.value},
+        subject={"sub": user.id, "role": user.role},   # role como string
         expires_delta=expires
     )
 
-    # Sesión persistente (upsert)
+    # Sesión persistente
     session = db.query(UserSession).filter(UserSession.user_id == user.id).first()
     if session:
         session.token = token
@@ -104,42 +211,56 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "user": {
             "id": user.id,
-            "role": user.role.value,
+            "email": user.email,
             "name": user.name,
-            "email": user.email
+            "lastname": user.lastname,
+            "role": user.role
         }
     }
 
+
 @router.post("/forgot-password")
-def forgot_password(data: ForgotPassword, db: Session = Depends(get_db)):
+def forgot_password(
+    data: ForgotPassword,
+    background_tasks: BackgroundTasks,     # ← plural correcto
+    db: Session = Depends(get_db)
+):
     user = db.query(Profile).filter(Profile.email == data.email).first()
     if not user:
-        # No revelar si existe o no (seguridad)
+        # Por seguridad no revelamos si el email existe
         return {"message": "Si el email existe, recibirás un código de recuperación"}
 
     code = str(random.randint(100000, 999999))
-    verification_codes[f"reset_{data.email}"] = code   # prefijo para distinguir
+    verification_codes[f"reset_{data.email}"] = code
 
-    # TODO: Enviar email con código de recuperación
+    # Enviar email con la plantilla correcta
+    send_email_background(
+        background_tasks=background_tasks,
+        to_email=data.email,
+        subject="Recuperación de contraseña - Soodan",
+        template_name="password_reset.html",      # ← .html incluido
+        context={"code": code}
+    )
 
     return {"message": "Código de recuperación enviado a tu email"}
 
 @router.post("/reset-password")
 def reset_password(data: ResetPassword, db: Session = Depends(get_db)):
     email = None
-    for key, val in verification_codes.items():
-        if key.startswith("reset_") and val == data.token:   # en prod usa JWT o token seguro
+    for key, val in list(verification_codes.items()):
+        if key.startswith("reset_") and val == data.token:
             email = key.replace("reset_", "")
             break
 
     if not email:
-        raise HTTPException(400, "Token inválido o expirado")
+        raise HTTPException(status_code=400, detail="Código inválido o expirado")
 
     user = db.query(Profile).filter(Profile.email == email).first()
-    if user:
-        user.password = get_password_hash(data.new_password)
-        db.commit()
-        del verification_codes[f"reset_{email}"]
-        return {"message": "Contraseña actualizada correctamente"}
-    
-    raise HTTPException(404, "Usuario no encontrado")
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    user.password = get_password_hash(data.new_password)
+    db.commit()
+    verification_codes.pop(f"reset_{email}", None)
+
+    return {"message": "Contraseña actualizada correctamente"}

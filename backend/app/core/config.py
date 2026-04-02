@@ -7,13 +7,23 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # Email config (SMTP)
-    SMTP_HOST: str
-    SMTP_PORT: int
-    SMTP_USER: str
-    SMTP_PASSWORD: str
+    EMAIL_HOST: str
+    EMAIL_PORT: int
+    EMAIL_USER: str
+    EMAIL_PASSWORD: str
     EMAIL_FROM: str
+    EMAIL_FROM_NAME: str
+    
+    # Database config
+    DB_CONNECTION: str
+    DB_HOST: str
+    DB_PORT: int
+    DB_DATABASE: str
+    DB_USERNAME: str
+    DB_PASSWORD: str
 
     class Config:
-        env_file = ".env"
+        env_file = ".env",
+        extra = "ignore"
 
 settings = Settings()

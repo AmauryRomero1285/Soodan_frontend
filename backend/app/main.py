@@ -7,10 +7,8 @@ import uvicorn
 # Importar routers
 from app.api.v1.auth import router as auth_router
 # Aquí irán los demás routers más adelante:
-# from app.api.v1.medic import router as medic_router
-# from app.api.v1.patient import router as patient_router
-# from app.api.v1.appointment import router as appointment_router
 
+from app.api.v1.profile import router as profile_router
 # Importar configuración y dependencias
 from app.core.config import settings
 from app.database.connection import engine, Base
@@ -21,7 +19,7 @@ Base.metadata.create_all(bind=engine)
 
 # Instancia principal de FastAPI
 app = FastAPI(
-    title="MediApp API",
+    title="Soodan API",
     description="API para aplicación médica - Gestión de pacientes, médicos y citas",
     version="1.0.0",
     openapi_url="/api/v1/openapi.json",
@@ -34,7 +32,7 @@ app = FastAPI(
 # CORS - Configuración recomendada para frontend (React, Vue, Flutter, etc.)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],                    # Cambia esto en producción por tu dominio
+    allow_origins=["*"],                    # Cambiar esto en producción por el dominio
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,17 +48,19 @@ API_V1_PREFIX = "/api/v1"
 
 app.include_router(auth_router, prefix=API_V1_PREFIX)
 
-# Ejemplos de cómo agregar más routers en el futuro:
+# Agregar más routers en el futuro:
 # app.include_router(medic_router, prefix=API_V1_PREFIX, dependencies=[Depends(get_current_user)])
 # app.include_router(patient_router, prefix=API_V1_PREFIX, dependencies=[Depends(get_current_user)])
 # app.include_router(appointment_router, prefix=API_V1_PREFIX, dependencies=[Depends(get_current_user)])
+app.include_router(profile_router, prefix=API_V1_PREFIX, dependencies=[Depends(get_current_user)])
+
 
 # ====================== RUTAS DE PRUEBA / HEALTH CHECK ======================
 
 @app.get("/", tags=["health"])
 async def root():
     return {
-        "message": "Bienvenido a la API de MediApp",
+        "message": "Bienvenido a la API de Soodan",
         "docs": "/api/v1/docs",
         "version": "1.0.0"
     }
@@ -75,7 +75,7 @@ async def health_check():
     }
 
 
-# Ruta protegida de ejemplo (para probar autenticación)
+# Ruta protegida
 @app.get("/api/v1/me", tags=["users"])
 async def get_current_user_info(current_user=Depends(get_current_user)):
     return {
@@ -95,6 +95,6 @@ if __name__ == "__main__":
         "app.main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,           # Solo en desarrollo
+        reload=True,         
         log_level="info"
     )
