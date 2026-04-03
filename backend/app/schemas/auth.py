@@ -46,6 +46,8 @@ class TokenData(BaseModel):
     user_id: int
     role: str
 
+class LogoutResponse(BaseModel):
+    message: str
 
 # ====================== RECUPERACIÓN DE CONTRASEÑA ======================
 

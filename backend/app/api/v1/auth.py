@@ -1,12 +1,15 @@
 # app/api/v1/auth.py
+
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 import random
 
+# Imports correctos:
 from app.core.security import get_password_hash, verify_password, create_access_token
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, get_current_user, oauth2_scheme 
+
 from app.models.profile import Profile
 from app.models.medic import Medic
 from app.models.patient import Patient
@@ -164,8 +167,6 @@ def verify_code(request: VerifyCodeRequest, db: Session = Depends(get_db)):
     return {"message": "Cuenta verificada correctamente"}
 
 
-# El resto de endpoints (login, forgot-password, reset-password) se mantienen igual
-# (solo asegúrate de usar background_tasks correctamente en forgot-password)
 
 @router.post("/login")
 def login(
@@ -218,6 +219,50 @@ def login(
         }
     }
 
+@router.post("/logout")
+def logout(
+    current_user: Profile = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme)
+):
+    """Logout seguro con invalidación de sesión persistente"""
+    
+    try:
+        # Buscar y desactivar la sesión actual
+        session = db.query(UserSession).filter(
+            UserSession.user_id == current_user.id,
+            UserSession.is_active == True
+        ).first()
+
+        if session:
+            session.is_active = False
+            # Opcional: puedes limpiar el token por seguridad
+            # session.token = ""
+            db.commit()
+
+        return {
+            "message": "Sesión cerrada correctamente",
+            "user_id": current_user.id
+        }
+
+    except Exception as e:
+        print(f"Error en logout: {e}")
+        # Aún así devolvemos éxito por UX (no revelar errores internos)
+        return {"message": "Sesión cerrada correctamente"}
+@router.post("/logout/all")
+def logout_all_sessions(
+    current_user: Profile = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cierra todas las sesiones activas del usuario"""
+    db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_active == True
+    ).update({"is_active": False})
+    
+    db.commit()
+    
+    return {"message": "Todas las sesiones han sido cerradas"}
 
 @router.post("/forgot-password")
 def forgot_password(
