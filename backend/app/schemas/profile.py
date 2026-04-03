@@ -58,7 +58,7 @@ class ChangePassword(BaseModel):
     new_password: str = Field(..., min_length=8)
 
 
-# ====================== RESOLVER REFERENCIAS CIRCULARES ======================
+# ====================== RESOLVER REFERENCIAS CIRCULARES =====================
 # Importamos al final para evitar ciclos
 from .medic import MedicRead
 from .patient import PatientRead
