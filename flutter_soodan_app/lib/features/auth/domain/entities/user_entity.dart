@@ -23,12 +23,13 @@ class ProfileEntity {
     this.createdAt,
     this.isVerified = false,
   });
+  String get fullName => '$name $lastname';
 }
 
 class UserEntity {
   final ProfileEntity profile;
   final UserRole role; 
-  final dynamic roleData; // Datos extra de Medic o Patient
+  final dynamic roleData; // MedicEntity | PatientEntity | Null
 
   UserEntity({
     required this.profile, 
