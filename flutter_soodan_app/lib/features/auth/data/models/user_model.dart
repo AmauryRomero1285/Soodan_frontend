@@ -1,64 +1,88 @@
-// lib/features/auth/data/models/user_model.dart
 import '../../domain/entities/user_entity.dart';
+import 'medic_model.dart';
+import 'patient_model.dart';
 
 class UserModel extends UserEntity {
-  UserModel({
+  const UserModel({
     required ProfileModel profile,
     required UserRole role,
     dynamic roleData,
   }) : super(profile: profile, role: role, roleData: roleData);
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    // Mapeo del string del backend al enum de Dart
     final roleStr = json['role']?.toString().toLowerCase();
     final role = UserRole.values.firstWhere(
       (e) => e.name == roleStr,
       orElse: () => UserRole.patient,
     );
 
+    // Parsear roleData según el rol
+    dynamic roleData;
+    if (json['role_data'] != null) {
+      roleData = switch (role) {
+        UserRole.medic =>
+          MedicModel.fromJson(json['role_data'] as Map<String, dynamic>),
+        UserRole.patient =>
+          PatientModel.fromJson(json['role_data'] as Map<String, dynamic>),
+        _ => null,
+      };
+    }
+
     return UserModel(
-      profile: ProfileModel.fromJson(json['profile'] ?? json), // Depende de si el JSON viene anidado o plano
+      profile: ProfileModel.fromJson(json['profile'] ?? json),
       role: role,
-      roleData: json['role_data'], // Datos específicos de Medic/Patient si existen
+      roleData: roleData,
     );
   }
 }
 
 class ProfileModel extends ProfileEntity {
-  ProfileModel({
-    required int id,
-    required String email,
-    required String name,
-    required String lastname,
-    String? avatarUrl,
-    String? phoneNumber,
-    required UserRole role,
-    bool isVerified = false,
-  }) : super(
-          id: id,
-          email: email,
-          name: name,
-          lastname: lastname,
-          avatarUrl: avatarUrl,
-          phoneNumber: phoneNumber,
-          role: role,
-          isVerified: isVerified,
-        );
+  const ProfileModel({
+    required super.id,
+    required super.email,
+    required super.name,
+    required super.lastname,
+    super.avatarUrl,
+    super.phoneNumber,
+    required super.role,
+    super.createdAt,
+    super.isVerified,
+  });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    final roleStr = json['role']?.toString().toLowerCase();
     return ProfileModel(
-      id: json['id'],
-      email: json['email'],
-      name: json['name'],
-      lastname: json['lastname'],
-      avatarUrl: json['avatar_url'],
-      phoneNumber: json['phone_number'],
+      id: json['id'] as int,
+      email: json['email'] as String,
+      name: json['name'] as String,
+      lastname: json['lastname'] as String,
+      avatarUrl: json['avatar_url'] as String?,
+      phoneNumber: json['phone_number'] as String?,
       role: UserRole.values.firstWhere(
-        (e) => e.name == json['role'],
+        (e) => e.name == roleStr,
         orElse: () => UserRole.patient,
       ),
-      // Convertimos el 1/0 de SQLAlchemy a bool
-      isVerified: json['is_verified'] == 1,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
+      // SQLAlchemy puede devolver 1/0 o true/false
+      isVerified: switch (json['is_verified']) {
+        true => true,
+        1 => true,
+        _ => false,
+      },
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'email': email,
+        'name': name,
+        'lastname': lastname,
+        'avatar_url': avatarUrl,     // null explícito
+        'phone_number': phoneNumber,
+        'role': role.name,
+        'created_at': createdAt?.toIso8601String(),
+        'is_verified': isVerified,
+      };
 }

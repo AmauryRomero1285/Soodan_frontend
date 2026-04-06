@@ -1,44 +1,84 @@
-// lib/features/auth/data/datasources/auth_remote_data_source.dart
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
+import '../models/auth_response_model.dart';
 import '../models/user_model.dart';
 
-class AuthRemoteDataSource {
+abstract class AuthRemoteDataSource {
+  Future<UserModel> login(String email, String password);
+  Future<void> logout();
+}
+
+class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final DioClient _dioClient;
   final FlutterSecureStorage _storage;
 
-  AuthRemoteDataSource(this._dioClient, this._storage);
+  static const _tokenKey = 'jwt_token';
 
-    Future<UserModel> login(String email, String password) async {
-      try {
-        // Ahora 'response' es de tipo Response automáticamente
-        final response = await _dioClient.post(
-          '/api/v1/auth/login',
-          data: {
-            'email': email,
-            'password': password,
-          },
-        );
+  const AuthRemoteDataSourceImpl(this._dioClient, this._storage);
 
-        // Dart ya no se quejará de .data
-        final Map<String, dynamic> responseData =
-            response.data as Map<String, dynamic>;
+  @override
+  Future<UserModel> login(String email, String password) async {
+    try {
+      final response = await _dioClient.post(
+        '/api/v1/auth/login',
+        data: {'email': email, 'password': password},
+      );
 
-        // Guardar token (FastAPI suele devolver access_token)
-        final String? token = responseData['access_token'];
-        if (token != null) {
-          await _storage.write(key: 'jwt_token', value: token);
-        }
+      final json = response.data as Map<String, dynamic>;
+      final authResponse = AuthResponseModel.fromJson(json);
 
-        return UserModel.fromJson(responseData);
-      } on DioException catch (e) {
-        // Manejo de errores de tu FastAPI
-        if (e.response?.statusCode == 403) throw Exception("USER_NOT_VERIFIED");
+      await _storage.write(key: _tokenKey, value: authResponse.accessToken);
 
-        final msg =
-            e.response?.data is Map ? e.response?.data['detail'] : 'Error';
-        throw Exception(msg);
-      }
+      return authResponse.user;
+    } on DioException catch (e) {
+      throw _mapDioException(e);
     }
   }
+
+  @override
+  Future<void> logout() async {
+    await _storage.delete(key: _tokenKey);
+  }
+
+  AppException _mapDioException(DioException e) {
+    final status = e.response?.statusCode;
+    final data = e.response?.data;
+
+    // Extraer mensaje de FastAPI si viene en 'detail'
+    String? detail;
+    if (data is Map<String, dynamic>) {
+      final raw = data['detail'];
+      if (raw is String) {
+        detail = raw;
+      } else if (raw is List && raw.isNotEmpty) {
+        // Error 422 de Pydantic: lista de ValidationError
+        detail = raw.first?['msg']?.toString();
+      }
+    }
+
+    return switch (status) {
+      401 => const UnauthorizedException(),
+      403 => detail == 'USER_NOT_VERIFIED'
+          ? const UserNotVerifiedException()
+          : UnauthorizedException(detail ?? 'Acceso denegado.'),
+      422 => ValidationException(detail ?? 'Datos inválidos. Revisa los campos.'),
+      404 => const NotFoundException(),
+      500 || 502 || 503 => const ServerException(),
+      _ => _mapConnectionError(e),
+    };
+  }
+
+  AppException _mapConnectionError(DioException e) {
+    return switch (e.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout =>
+        const NetworkException('Tiempo de espera agotado. Verifica tu red.'),
+      DioExceptionType.connectionError =>
+        const NetworkException(),
+      _ => const ServerException('Ocurrió un error inesperado.'),
+    };
+  }
+}
