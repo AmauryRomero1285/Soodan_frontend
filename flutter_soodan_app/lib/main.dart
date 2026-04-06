@@ -9,11 +9,11 @@ void main() async {
   //inicializar dependencias
   await initDependencies();
 
-  runApp(const MyApp());
+  runApp(const SoodanApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SoodanApp extends StatelessWidget {
+  const SoodanApp({super.key});
 
   @override
   Widget build(BuildContext context) {

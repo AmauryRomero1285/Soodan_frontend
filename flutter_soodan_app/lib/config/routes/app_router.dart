@@ -5,11 +5,11 @@ import 'package:flutter_soodan_app/features/pages.examples/dashboard.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: AppRoutes.splash,
+    initialLocation: AppRoutes.login,
     routes: [
       GoRoute(
-        path: AppRoutes.splash,
-        name: AppRoutes.splash,
+        path: AppRoutes.login,
+        name: AppRoutes.login,
         builder: (context, state) => const DashboardScreen(),
       ),
        
