@@ -4,6 +4,7 @@ import '../../../../core/errors/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/auth_response_model.dart';
 import '../models/user_model.dart';
+import '../../../../core/constants/api_endpoints.dart';
 
 abstract class AuthRemoteDataSource {
   Future<UserModel> login(String email, String password);
@@ -17,21 +18,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   static const _tokenKey = 'jwt_token';
 
   const AuthRemoteDataSourceImpl(this._dioClient, this._storage);
-
   @override
   Future<UserModel> login(String email, String password) async {
     try {
       final response = await _dioClient.post(
-        '/api/v1/auth/login',
+        ApiEndpoints.login,
         data: {'email': email, 'password': password},
       );
 
       final json = response.data as Map<String, dynamic>;
       final authResponse = AuthResponseModel.fromJson(json);
 
+      // Persistir JWT
       await _storage.write(key: _tokenKey, value: authResponse.accessToken);
 
-      return authResponse.user;
+      // Construir UserModel desde el payload plano del login.
+      // avatar, phone, isVerified, etc. se cargarán del endpoint de perfil.
+      return UserModel.fromLoginPayload(authResponse.user);
     } on DioException catch (e) {
       throw _mapDioException(e);
     }
@@ -63,7 +66,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       403 => detail == 'USER_NOT_VERIFIED'
           ? const UserNotVerifiedException()
           : UnauthorizedException(detail ?? 'Acceso denegado.'),
-      422 => ValidationException(detail ?? 'Datos inválidos. Revisa los campos.'),
+      422 =>
+        ValidationException(detail ?? 'Datos inválidos. Revisa los campos.'),
       404 => const NotFoundException(),
       500 || 502 || 503 => const ServerException(),
       _ => _mapConnectionError(e),
@@ -76,8 +80,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       DioExceptionType.sendTimeout ||
       DioExceptionType.receiveTimeout =>
         const NetworkException('Tiempo de espera agotado. Verifica tu red.'),
-      DioExceptionType.connectionError =>
-        const NetworkException(),
+      DioExceptionType.connectionError => const NetworkException(),
       _ => const ServerException('Ocurrió un error inesperado.'),
     };
   }

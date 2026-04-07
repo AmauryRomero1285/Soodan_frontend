@@ -12,7 +12,7 @@ class ProfileEntity {
   final DateTime? createdAt;
   final bool isVerified;
 
-  ProfileEntity({
+ const ProfileEntity({
     required this.id,
     required this.email,
     required this.name,
@@ -31,7 +31,7 @@ class UserEntity {
   final UserRole role; 
   final dynamic roleData; // MedicEntity | PatientEntity | Null
 
-  UserEntity({
+ const UserEntity({
     required this.profile, 
     required this.role, 
     this.roleData,

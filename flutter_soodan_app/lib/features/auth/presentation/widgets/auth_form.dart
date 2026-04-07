@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/auth_bloc.dart';
 import 'password_field.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../config/routes/app_routes.dart';
 
 class AuthForm extends StatefulWidget {
   const AuthForm({super.key});
@@ -121,8 +123,7 @@ class _AuthFormState extends State<AuthForm> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed('/forgot-password'),
+                onPressed: () => context.go(AppRoutes.forgotPassword),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 4,
@@ -208,6 +209,7 @@ class _AuthFormState extends State<AuthForm> {
   }
 }
 
+// presentation/widgets/auth_form.dart — clase _RegisterLink
 class _RegisterLink extends StatelessWidget {
   const _RegisterLink();
 
@@ -216,21 +218,25 @@ class _RegisterLink extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          '¿No tienes cuenta? ',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 14,
+        // ✅ Flexible evita el overflow en pantallas pequeñas
+        Flexible(
+          child: Text(
+            '¿No tienes cuenta? ',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 13, // bajamos 1pt para pantallas chicas
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         GestureDetector(
-          onTap: () => Navigator.of(context).pushNamed('/register'),
+          onTap: () => context.go(AppRoutes.register),
           child: Text(
             'Regístrate',
             style: TextStyle(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w600,
-              fontSize: 14,
+              fontSize: 13,
             ),
           ),
         ),

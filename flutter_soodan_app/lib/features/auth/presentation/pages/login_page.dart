@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_soodan_app/config/routes/app_routes.dart';
 import '../blocs/auth_bloc.dart';
 import '../widgets/auth_form.dart';
 
@@ -36,16 +38,20 @@ class LoginPage extends StatelessWidget {
   void _handleStateChange(BuildContext context, AuthState state) {
     if (state is AuthAuthenticated) {
       // Adapta la ruta a tu router (go_router, auto_route, etc.)
-      Navigator.of(context).pushReplacementNamed('/home');
+      context.go(AppRoutes.home);
       return;
     }
 
-    if (state is AuthFailureState) {
-      // Acción especial: cuenta sin verificar → redirige a verify
-      if (state.failureType == AuthFailureType.notVerified) {
-        Navigator.of(context).pushNamed('/verify-account');
-        return;
-      }
+  if (state is AuthFailureState) {
+    if (state.failureType == AuthFailureType.notVerified) {
+      context.go(
+        AppRoutes.verifyAccountWithEmail(
+          // el email viene del form — lo pasamos via extra o query param
+          state.message, // temporal, ajustar cuando tengamos el email en el state
+        ),
+      );
+      return;
+    }
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()

@@ -1,16 +1,19 @@
-import 'user_model.dart';
-
-/// Mapea la respuesta completa del endpoint POST /api/v1/auth/login
-/// Estructura esperada del backend FastAPI:
+/// Mapea exactamente la respuesta de POST /api/v1/auth/login:
 /// {
 ///   "access_token": "eyJ...",
 ///   "token_type": "bearer",
-///   "user": { "profile": {...}, "role": "medic", "role_data": {...} }
+///   "user": {
+///     "id": 11,
+///     "email": "medic@soodan.com",
+///     "name": "Alan",
+///     "lastname": "Turing",
+///     "role": "medic"
+///   }
 /// }
 class AuthResponseModel {
   final String accessToken;
   final String tokenType;
-  final UserModel user;
+  final AuthUserPayload user;
 
   const AuthResponseModel({
     required this.accessToken,
@@ -22,7 +25,35 @@ class AuthResponseModel {
     return AuthResponseModel(
       accessToken: json['access_token'] as String,
       tokenType: json['token_type'] as String? ?? 'bearer',
-      user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
+      user: AuthUserPayload.fromJson(json['user'] as Map<String, dynamic>),
+    );
+  }
+}
+
+/// Payload mínimo que devuelve el login.
+/// No confundir con UserModel completo — ese viene del endpoint de perfil.
+class AuthUserPayload {
+  final int id;
+  final String email;
+  final String name;
+  final String lastname;
+  final String role;
+
+  const AuthUserPayload({
+    required this.id,
+    required this.email,
+    required this.name,
+    required this.lastname,
+    required this.role,
+  });
+
+  factory AuthUserPayload.fromJson(Map<String, dynamic> json) {
+    return AuthUserPayload(
+      id: json['id'] as int,
+      email: json['email'] as String,
+      name: json['name'] as String,
+      lastname: json['lastname'] as String,
+      role: json['role'] as String,
     );
   }
 }

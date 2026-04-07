@@ -32,12 +32,13 @@ dependencies:
   json_annotation: ^4.9.0
 
   # Routing
-  go_router: ^14.6.3   # ⚠️ v17 requiere sdk muy reciente, usa v14 estable
+  go_router: ^17.2.0   # ⚠️ v17 requiere sdk muy reciente, usa v14 estable
 
   # UI
   google_fonts: ^6.2.1
   cupertino_icons: ^1.0.8
   http: ^1.6.0
+  connectivity_plus: ^7.1.0
 
 dev_dependencies:
   flutter_test:

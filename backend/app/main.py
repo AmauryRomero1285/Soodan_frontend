@@ -30,9 +30,16 @@ app = FastAPI(
 # ====================== MIDDLEWARE ======================
 
 # CORS - Configuración recomendada para frontend (React, Vue, Flutter, etc.)
+origins = [
+    "http://localhost:52951",  # La URL actual de tu Flutter Web
+    "http://127.0.0.1:52951",
+    "http://localhost:8000",   # Tu propio Swagger
+    # "https://tu-app-soodan.com", # URL futura de producción
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],                    # Cambiar esto en producción por el dominio
+    allow_origins=origins,                    # Cambiar esto en producción por el dominio
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

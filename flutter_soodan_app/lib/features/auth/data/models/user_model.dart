@@ -1,4 +1,5 @@
 import '../../domain/entities/user_entity.dart';
+import '../models/auth_response_model.dart';
 import 'medic_model.dart';
 import 'patient_model.dart';
 
@@ -9,6 +10,31 @@ class UserModel extends UserEntity {
     dynamic roleData,
   }) : super(profile: profile, role: role, roleData: roleData);
 
+  /// Para el response mínimo del login (plano, sin role_data ni campos opcionales)
+  factory UserModel.fromLoginPayload(AuthUserPayload payload) {
+    final role = UserRole.values.firstWhere(
+      (e) => e.name == payload.role.toLowerCase(),
+      orElse: () => UserRole.patient,
+    );
+
+    return UserModel(
+      profile: ProfileModel(
+        id: payload.id,
+        email: payload.email,
+        name: payload.name,
+        lastname: payload.lastname,
+        role: role,
+        // Campos opcionales explícitamente null — se poblarán desde /profile
+        avatarUrl: null,
+        phoneNumber: null,
+        isVerified: false,
+      ),
+      role: role,
+      roleData: null, // Se carga con el endpoint de perfil detallado
+    );
+  }
+
+  /// Para responses completos con perfil anidado (endpoint GET /profile)
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final roleStr = json['role']?.toString().toLowerCase();
     final role = UserRole.values.firstWhere(
@@ -16,7 +42,6 @@ class UserModel extends UserEntity {
       orElse: () => UserRole.patient,
     );
 
-    // Parsear roleData según el rol
     dynamic roleData;
     if (json['role_data'] != null) {
       roleData = switch (role) {
@@ -35,6 +60,8 @@ class UserModel extends UserEntity {
     );
   }
 }
+
+// ProfileModel sin cambios respecto al paso anterior...
 
 class ProfileModel extends ProfileEntity {
   const ProfileModel({

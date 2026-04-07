@@ -2,47 +2,57 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
-import 'package:flutter_soodan_app/core/network/dio_client.dart';
-import '../../features/auth/domain/repositories/auth_repository.dart';
-import '../../features/auth/data/respositories/auth_repositoriy_impl.dart';
+
+import '../../core/network/dio_client.dart';
+import '../../core/network/interceptors/auth_interceptor.dart';
+import '../../core/network/interceptors/logging_interceptor.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/presentation/blocs/auth_bloc.dart';
-import '../../core/network/interceptors/auth.dart';
 
 final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
-  // External
-  const storage = FlutterSecureStorage();
-  sl.registerLazySingleton(() => storage);
-  
-  // Core
-  sl.registerLazySingleton<DioClient>(() => DioClient(
-    dio: Dio()..interceptors.add(AuthInterceptor(sl()))
-  ));
+  _initExternal();
+  _initCore();
+  _initAuth();
+}
 
-  // External
-  await _initExternal();
-  
-  // Features
-  _initAuth(); // Llamamos a la configuración de Auth
+void _initExternal() {
+  sl.registerLazySingleton<FlutterSecureStorage>(
+    () => const FlutterSecureStorage(),
+  );
+}
+
+void _initCore() {
+  sl.registerLazySingleton<DioClient>(() {
+    final dio = Dio()
+      ..interceptors.addAll([
+        AuthInterceptor(sl<FlutterSecureStorage>()),
+        LoggingInterceptor(), // solo imprime en kDebugMode internamente
+      ]);
+
+    return DioClient(existingDio: dio, authInterceptor: AuthInterceptor(sl<FlutterSecureStorage>()));
+  });
 }
 
 void _initAuth() {
-  // 1. Data Source - Ahora le pasamos el storage explícitamente
-  sl.registerLazySingleton(() => AuthRemoteDataSource(sl<DioClient>(), sl<FlutterSecureStorage>()));
-
-  // 2. Repository
-  sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(sl<AuthRemoteDataSource>())
+  sl.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(
+      sl<DioClient>(),
+      sl<FlutterSecureStorage>(),
+    ),
   );
 
-  // 3. BLoC
-  sl.registerFactory(() => AuthBloc(sl<AuthRepository>()));
-}
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(sl<AuthRemoteDataSource>()),
+  );
 
-Future<void> _initExternal() async {
-  // Aquí inicializas cosas externas, por ejemplo:
-  // final sharedPreferences = await SharedPreferences.getInstance();
-  // sl.registerLazySingleton(() => sharedPreferences);
+  sl.registerLazySingleton(() => LoginUseCase(sl<AuthRepository>()));
+
+  sl.registerFactory(
+    () => AuthBloc(loginUseCase: sl<LoginUseCase>()),
+  );
 }

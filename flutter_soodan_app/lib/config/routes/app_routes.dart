@@ -1,3 +1,4 @@
+// app_routes.dart
 class AppRoutes {
   AppRoutes._();
 
